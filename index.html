@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Redirección WhatsApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body>
+  <h1>Redireccionando...</h1>
+  <script>
+    const token = "pataHT5lIlMjght7Y.737e593b18f67acc6c16710b252ea7a459b70ebccd5b629070f88a537a2ed747";
+    const baseId = "appSPwY0dTCd1lbxW";
+    const tableName = "Numeros activos";
+
+    async function redirigir() {
+      try {
+        const res = await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        const habilitados = data.records.filter(r => r.fields.habilitado);
+        if (habilitados.length === 0) {
+          alert("No hay números habilitados.");
+          return;
+        }
+        const indexKey = "ultimoNumeroIndex";
+        let index = parseInt(localStorage.getItem(indexKey)) || 0;
+        const elegido = habilitados[index % habilitados.length].fields.numero;
+        localStorage.setItem(indexKey, (index + 1) % habilitados.length);
+        const mensaje = encodeURIComponent("Hola, quiero un usuario");
+        window.location.href = `https://wa.me/${elegido}?text=${mensaje}`;
+      } catch (e) {
+        alert("Error al cargar datos.");
+        console.error(e);
+      }
+    }
+
+    redirigir();
+  </script>
+</body>
+</html>

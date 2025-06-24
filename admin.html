@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Panel de Números WhatsApp</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f9f9f9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+    }
+    td, th {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+    }
+    input[type="text"] {
+      width: 100%;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Editar Números de WhatsApp (Airtable)</h1>
+  <table id="tabla">
+    <thead>
+      <tr><th>Número</th><th>Habilitado</th><th>Eliminar</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button onclick="agregarFila()">Agregar Número</button>
+  <button onclick="guardarCambios()">Guardar en Airtable</button>
+
+  <script>
+    const token = "pataHT5lIlMjght7Y.737e593b18f67acc6c16710b252ea7a459b70ebccd5b629070f88a537a2ed747";
+    const baseId = "appSPwY0dTCd1lbxW";
+    const tableName = "Numeros activos";
+
+    let registros = [];
+
+    async function cargarDatos() {
+      const res = await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      registros = data.records;
+      render();
+    }
+
+    function render() {
+      const tbody = document.querySelector("#tabla tbody");
+      tbody.innerHTML = "";
+      registros.forEach((registro, i) => {
+        const numero = registro.fields.numero || "";
+        const habilitado = registro.fields.habilitado || false;
+        tbody.innerHTML += `
+          <tr>
+            <td><input type="text" value="${numero}" onchange="actualizarCampo(${i}, 'numero', this.value)" /></td>
+            <td><input type="checkbox" ${habilitado ? "checked" : ""} onchange="actualizarCampo(${i}, 'habilitado', this.checked)" /></td>
+            <td><button onclick="eliminarFila(${i})">❌</button></td>
+          </tr>
+        `;
+      });
+    }
+
+    function actualizarCampo(index, campo, valor) {
+      registros[index].fields[campo] = campo === "habilitado" ? Boolean(valor) : valor;
+    }
+
+    function agregarFila() {
+      registros.push({
+        id: null,
+        fields: { numero: "", habilitado: true }
+      });
+      render();
+    }
+
+    function eliminarFila(index) {
+      registros.splice(index, 1);
+      render();
+    }
+
+    async function guardarCambios() {
+      const actualizaciones = registros.map(r => {
+        const fields = r.fields;
+        return {
+          ...(r.id && { id: r.id }),
+          fields
+        };
+      });
+      await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ records: actualizaciones })
+      });
+      alert("Cambios guardados.");
+      cargarDatos();
+    }
+
+    cargarDatos();
+  </script>
+</body>
+</html>
